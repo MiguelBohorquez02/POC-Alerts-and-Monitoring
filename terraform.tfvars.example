@@ -11,7 +11,7 @@ project_id = "gcp-gah-uks-pdn-aah-01"
 #
 # Si el proyecto resulta ser solo el flujo de emails, restringir aqui.
 
-subscription_include_regex = "eventarc-europe-west2-account-customer-v1-subscriber-.*-prod-.*"
+subscription_include_regex = "eventarc-europe-west2-account-customer-v1-subscriber-(.*-)?prod(-.*)?"
 subscription_exclude_regex = ".*error.*"
 
 # ---------------------------------------------------------------------------

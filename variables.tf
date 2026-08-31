@@ -13,9 +13,15 @@ variable "subscription_include_regex" {
     Regex (RE2, anclado) de las subscriptions a monitorear.
     Por defecto: todas las productivas del servicio account-customer-v1.
     Ajustar aqui cuando se confirme el alcance real del proyecto.
+
+    "(.*-)?prod(-.*)?" en vez de ".*-prod-.*": la variante corta
+    "...subscriber-prod-<n>-sub-<n>" (sin un segmento descriptivo entre
+    "subscriber" y "prod") no trae el guion extra que ".*-prod-.*" exige,
+    asi que con el regex viejo esa subscription real de prod quedaba fuera
+    del monitoreo sin ningun aviso.
   EOT
   type        = string
-  default     = "eventarc-europe-west2-account-customer-v1-subscriber-.*-prod-.*"
+  default     = "eventarc-europe-west2-account-customer-v1-subscriber-(.*-)?prod(-.*)?"
 }
 
 variable "subscription_exclude_regex" {
