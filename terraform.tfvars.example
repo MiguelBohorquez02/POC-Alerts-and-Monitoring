@@ -1,0 +1,50 @@
+# Copiar como terraform.tfvars y ajustar.
+# terraform.tfvars NO debe subirse al repositorio: contiene la URL del webhook.
+
+project_id = "gcp-gah-uks-pdn-aah-01"
+
+# ---------------------------------------------------------------------------
+# ALCANCE - lo primero que hay que confirmar
+# ---------------------------------------------------------------------------
+# Por defecto: todas las subscriptions productivas de account-customer-v1,
+# excluyendo colas de error. Reduce de 1704 a ~80.
+#
+# Si el proyecto resulta ser solo el flujo de emails, restringir aqui.
+
+subscription_include_regex = "eventarc-europe-west2-account-customer-v1-subscriber-.*-prod-.*"
+subscription_exclude_regex = ".*error.*"
+
+# ---------------------------------------------------------------------------
+# TOPICS para la alerta de cero-ingreso
+# ---------------------------------------------------------------------------
+# Se crea una politica por cada topic de esta lista.
+# Poner solo los topics donde el Scheduler publica de forma continua.
+#
+# Sacar los nombres con:
+#   gcloud pubsub topics list --project=gcp-gah-uks-pdn-aah-01
+
+monitored_topics = [
+  # "customer-merge-extid-vm-prod",
+  # "customer-crmid-merge-prod",
+]
+
+# ---------------------------------------------------------------------------
+# UMBRALES - calibrar con datos reales antes de fijar
+# ---------------------------------------------------------------------------
+
+max_message_age_seconds = 900   # 15 min
+backlog_threshold       = 10
+backlog_duration        = "600s"
+zero_ingress_window     = "1h"
+growth_min_backlog      = 3
+growth_duration         = "900s"
+
+# ---------------------------------------------------------------------------
+# NOTIFICACIONES
+# ---------------------------------------------------------------------------
+# Arrancar con enable_notifications = false: las politicas evaluan y registran
+# incidentes, pero no notifican. Deja ver el comportamiento real sin ruido.
+# Cambiar a true cuando los umbrales esten calibrados.
+
+teams_webhook_url    = ""
+enable_notifications = false
