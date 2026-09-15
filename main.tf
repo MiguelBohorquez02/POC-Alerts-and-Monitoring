@@ -27,6 +27,13 @@ locals {
 
   notification_channels = var.enable_notifications && var.teams_webhook_url != "" ? [google_monitoring_notification_channel.teams[0].id] : []
 
+  # Interruptor propio para cero-ingreso: son ~236 politicas de una vez (todo
+  # topic de prod del proyecto, alcance confirmado con el stakeholder), muy por
+  # encima de las 1-a-la-vez de las otras 3 alertas. Arranca en modo silencioso
+  # independiente de enable_notifications para poder observar un par de dias de
+  # comportamiento real antes de conectar 236 fuentes nuevas a Teams de una vez.
+  zero_ingress_notification_channels = var.enable_zero_ingress_notifications && var.teams_webhook_url != "" ? [google_monitoring_notification_channel.teams[0].id] : []
+
   all_topic_names = compact(split(",", data.external.pubsub_topics.result.names))
 
   zero_ingress_topics = [
@@ -227,7 +234,7 @@ resource "google_monitoring_alert_policy" "zero_ingress" {
     EOT
   }
 
-  notification_channels = local.notification_channels
+  notification_channels = local.zero_ingress_notification_channels
 }
 
 # ===========================================================================

@@ -47,6 +47,13 @@ growth_duration         = "900s"
 # Arrancar con enable_notifications = false: las politicas evaluan y registran
 # incidentes, pero no notifican. Deja ver el comportamiento real sin ruido.
 # Cambiar a true cuando los umbrales esten calibrados.
+#
+# enable_zero_ingress_notifications es independiente: cero-ingreso son ~236
+# politicas de una vez (todo topic de prod del proyecto). Dejar en false hasta
+# confirmar, con un par de dias de datos reales, que ningun topic legitimo es
+# naturalmente esporadico - evita conectar 236 fuentes nuevas a Teams sin
+# calibrar primero.
 
-teams_webhook_url    = ""
-enable_notifications = false
+teams_webhook_url                 = ""
+enable_notifications              = false
+enable_zero_ingress_notifications = false

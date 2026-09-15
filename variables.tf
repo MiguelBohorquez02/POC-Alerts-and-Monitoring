@@ -121,8 +121,23 @@ variable "teams_webhook_url" {
 
 variable "enable_notifications" {
   description = <<-EOT
-    false = las politicas se crean y evaluan, pero no notifican a nadie.
-    Util para observar el comportamiento real antes de conectar Teams.
+    Controla las 3 alertas por subscription (oldest_unacked_message_age,
+    backlog_depth, queue_growth_rate). false = las politicas se crean y
+    evaluan, pero no notifican a nadie. Util para observar el comportamiento
+    real antes de conectar Teams.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "enable_zero_ingress_notifications" {
+  description = <<-EOT
+    Interruptor independiente de enable_notifications, solo para la alerta de
+    cero-ingreso. Son ~236 politicas de una vez (todo topic de prod del
+    proyecto), muy por encima de las otras 3 alertas. Arranca en false para
+    observar un par de dias de comportamiento real - confirmar que ningun
+    topic legitimo es naturalmente esporadico - antes de conectar 236 fuentes
+    nuevas a Teams a la vez.
   EOT
   type        = bool
   default     = false
