@@ -1,0 +1,59 @@
+# Copiar como terraform.tfvars y ajustar.
+# terraform.tfvars NO debe subirse al repositorio: contiene la URL del webhook.
+
+project_id = "gcp-gah-uks-pdn-aah-01"
+
+# ---------------------------------------------------------------------------
+# ALCANCE - lo primero que hay que confirmar
+# ---------------------------------------------------------------------------
+# Por defecto: todas las subscriptions productivas de account-customer-v1,
+# excluyendo colas de error. Reduce de 1704 a ~80.
+#
+# Si el proyecto resulta ser solo el flujo de emails, restringir aqui.
+
+subscription_include_regex = "eventarc-europe-west2-account-customer-v1-subscriber-(.*-)?prod(-.*)?"
+subscription_exclude_regex = ".*error.*"
+
+# ---------------------------------------------------------------------------
+# TOPICS para la alerta de cero-ingreso
+# ---------------------------------------------------------------------------
+# Alcance real pedido: TODOS los topics de prod, no una lista curada a mano.
+# Se descubren solos via gcloud en cada plan/apply (ver data.external.pubsub_topics
+# en main.tf) y se filtran con estos dos regex. Ajustar solo si el criterio de
+# "prod" cambia (ej. si algunos topics de prod no siguen el patron "-prod-").
+#
+# ANTES DE APLICAR: contar cuantos topics matchean, para no sorprenderse con
+# la cantidad de politicas que se van a crear:
+#   gcloud pubsub topics list --format="value(name)" \
+#     | sed 's#.*/##' | grep -E '(^|-)prod(-|$)' | grep -v -i error | wc -l
+
+topic_include_regex = "(^|-)prod(-|$)"
+topic_exclude_regex = ".*error.*"
+
+# ---------------------------------------------------------------------------
+# UMBRALES - calibrar con datos reales antes de fijar
+# ---------------------------------------------------------------------------
+
+max_message_age_seconds = 900   # 15 min
+backlog_threshold       = 10
+backlog_duration        = "600s"
+zero_ingress_window     = "1h"
+growth_min_backlog      = 3
+growth_duration         = "900s"
+
+# ---------------------------------------------------------------------------
+# NOTIFICACIONES
+# ---------------------------------------------------------------------------
+# Arrancar con enable_notifications = false: las politicas evaluan y registran
+# incidentes, pero no notifican. Deja ver el comportamiento real sin ruido.
+# Cambiar a true cuando los umbrales esten calibrados.
+#
+# enable_zero_ingress_notifications es independiente: cero-ingreso son ~236
+# politicas de una vez (todo topic de prod del proyecto). Dejar en false hasta
+# confirmar, con un par de dias de datos reales, que ningun topic legitimo es
+# naturalmente esporadico - evita conectar 236 fuentes nuevas a Teams sin
+# calibrar primero.
+
+teams_webhook_url                 = ""
+enable_notifications              = false
+enable_zero_ingress_notifications = false
