@@ -26,6 +26,25 @@ locals {
   ])
 
   notification_channels = var.enable_notifications && var.teams_webhook_url != "" ? [google_monitoring_notification_channel.teams[0].id] : []
+
+  all_topic_names = compact(split(",", data.external.pubsub_topics.result.names))
+
+  zero_ingress_topics = [
+    for t in local.all_topic_names : t
+    if length(regexall(var.topic_include_regex, t)) > 0
+    && length(regexall(var.topic_exclude_regex, t)) == 0
+  ]
+}
+
+# El provider de Google no trae un data source nativo para listar topics de
+# Pub/Sub por patron, asi que se descubren via `gcloud` en tiempo de plan/apply.
+# Esto es lo que reemplaza a la lista manual de topics: en vez de mantener a
+# mano cuales topics son "de prod", se detectan solos en cada plan/apply.
+data "external" "pubsub_topics" {
+  program = ["bash", "${path.module}/scripts/list_topics.sh"]
+  query = {
+    project_id = var.project_id
+  }
 }
 
 # ===========================================================================
@@ -150,6 +169,19 @@ resource "google_monitoring_alert_policy" "backlog_depth" {
 # Significa: el Scheduler dejo de publicar. Es la unica senal para este fallo,
 # porque los workers se ven perfectamente sanos: no tienen nada que hacer.
 #
+# Alcance real (confirmado en llamada con el stakeholder, no era un topic
+# puntual del Scheduler): "todos los topics de prod", no una lista curada a
+# mano. Por eso el alcance sale de local.zero_ingress_topics (descubierto via
+# gcloud + filtrado por topic_include_regex/exclude_regex), no de una lista
+# fija.
+#
+# Simplificacion consciente: el pedido original era comparar cada topic contra
+# su propio promedio historico (ej. "normalmente publica 100/dia, avisa si un
+# dia no publica nada"). Eso es deteccion de anomalia por topic y no es lo que
+# esto hace - esto es una ventana de silencio fija (zero_ingress_window) igual
+# para todos los topics. Cubre la mayor parte del valor pedido con una fraccion
+# del esfuerzo; la version con baseline por topic queda pendiente si hace falta.
+#
 # Una politica por topic. absent_over_time solo devuelve algo si NINGUNA serie
 # que coincida con el selector tiene datos; con un regex de varios topics, uno
 # silencioso quedaria tapado por los demas.
@@ -158,7 +190,7 @@ resource "google_monitoring_alert_policy" "backlog_depth" {
 # recien creado esta condicion no dispara.
 
 resource "google_monitoring_alert_policy" "zero_ingress" {
-  for_each = toset(var.monitored_topics)
+  for_each = toset(local.zero_ingress_topics)
 
   display_name = "Pub/Sub | Cero mensajes publicados en ${var.zero_ingress_window} - ${each.value}"
   combiner     = "OR"

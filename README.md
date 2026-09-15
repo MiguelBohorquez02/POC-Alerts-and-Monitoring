@@ -22,6 +22,21 @@ ambientes es normal que las colas se atasquen.
 es una anomalia, y que quede sin consumir puede ser lo esperado. Corresponden al
 Pilar 4 (DLQ Accumulation), no a estas cuatro.
 
+**Cero-ingreso cubre TODOS los topics de prod, descubiertos solos.** Alcance
+confirmado con el stakeholder: no es un topic puntual del Scheduler, es
+cualquier topic de prod que se quede en silencio. Los topics se descubren via
+`gcloud` en cada `plan`/`apply` (`data.external.pubsub_topics` en `main.tf`) y
+se filtran con `topic_include_regex`/`topic_exclude_regex` — no hay una lista
+para mantener a mano.
+
+**Simplificacion consciente en cero-ingreso.** El pedido real era comparar
+cada topic contra su propio promedio historico (avisar si un topic que
+normalmente publica todos los dias deja de hacerlo). Eso es deteccion de
+anomalia por topic; lo que hay implementado es una ventana de silencio fija
+(`zero_ingress_window`) igual para todos. Cubre la mayor parte del valor con
+una fraccion del esfuerzo — la version con baseline por topic queda pendiente
+si hace falta mas precision.
+
 **Una politica por topic en cero-ingreso.** `absent_over_time` solo devuelve algo
 si ninguna serie del selector tiene datos. Con un regex de varios topics, uno
 silencioso queda tapado por los demas.
@@ -48,10 +63,16 @@ terraform plan
 terraform apply
 ```
 
-## Pendientes antes de activar notificaciones
+## Pendientes
 
-- [ ] Confirmar el alcance real (todas las prod de account-customer-v1, o solo el flujo de emails)
-- [ ] Llenar `monitored_topics` con los topics donde publica el Scheduler
-- [ ] Calibrar umbrales con ~1 semana de datos reales
-- [ ] Confirmar si el Scheduler corre 24/7 (si no, la alerta de cero-ingreso necesita snooze programado)
-- [ ] Crear el flujo de Power Automate y asignarle co-propietarios
+- [x] Confirmar el alcance real de las subscriptions (account-customer-v1 prod)
+- [x] Crear el flujo de Power Automate y conectarlo a Teams
+- [x] Confirmar el alcance de cero-ingreso (todos los topics de prod, via regex)
+- [ ] Contar cuantos topics matchean `topic_include_regex` antes del primer `apply`
+      de este cambio (puede ser una cantidad grande de politicas nuevas):
+      `gcloud pubsub topics list --format="value(name)" | sed 's#.*/##' | grep -E '(^|-)prod(-|$)' | grep -v -i error | wc -l`
+- [ ] Calibrar umbrales con ~1 semana de datos reales, incluyendo `zero_ingress_window`
+- [ ] Confirmar si los topics de prod publican 24/7 (si alguno no, la alerta de
+      cero-ingreso necesita snooze programado o exclusion puntual)
+- [ ] Evaluar si hace falta la version con baseline historico por topic (en vez
+      de ventana fija) para cero-ingreso

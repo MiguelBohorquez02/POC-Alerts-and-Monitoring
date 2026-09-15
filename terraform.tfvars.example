@@ -17,16 +17,18 @@ subscription_exclude_regex = ".*error.*"
 # ---------------------------------------------------------------------------
 # TOPICS para la alerta de cero-ingreso
 # ---------------------------------------------------------------------------
-# Se crea una politica por cada topic de esta lista.
-# Poner solo los topics donde el Scheduler publica de forma continua.
+# Alcance real pedido: TODOS los topics de prod, no una lista curada a mano.
+# Se descubren solos via gcloud en cada plan/apply (ver data.external.pubsub_topics
+# en main.tf) y se filtran con estos dos regex. Ajustar solo si el criterio de
+# "prod" cambia (ej. si algunos topics de prod no siguen el patron "-prod-").
 #
-# Sacar los nombres con:
-#   gcloud pubsub topics list --project=gcp-gah-uks-pdn-aah-01
+# ANTES DE APLICAR: contar cuantos topics matchean, para no sorprenderse con
+# la cantidad de politicas que se van a crear:
+#   gcloud pubsub topics list --format="value(name)" \
+#     | sed 's#.*/##' | grep -E '(^|-)prod(-|$)' | grep -v -i error | wc -l
 
-monitored_topics = [
-  # "customer-merge-extid-vm-prod",
-  # "customer-crmid-merge-prod",
-]
+topic_include_regex = "(^|-)prod(-|$)"
+topic_exclude_regex = ".*error.*"
 
 # ---------------------------------------------------------------------------
 # UMBRALES - calibrar con datos reales antes de fijar

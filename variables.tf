@@ -34,16 +34,32 @@ variable "subscription_exclude_regex" {
   default     = ".*error.*"
 }
 
-variable "monitored_topics" {
+variable "topic_include_regex" {
   description = <<-EOT
-    Lista de topic_id para la alerta de cero-ingreso. Se crea UNA politica por topic.
-    No se puede usar un regex: absent_over_time solo dispara si NINGUNA serie tiene
-    datos, asi que un topic silencioso quedaria tapado por los demas.
+    Regex (RE2) de topics a monitorear para la alerta de cero-ingreso.
+    Se crea UNA politica por topic que matchee (ver locals.zero_ingress_topics
+    en main.tf) - una politica por topic porque absent_over_time solo dispara
+    si NINGUNA serie del selector tiene datos, asi que agrupar varios topics
+    en una sola condicion tapa a cualquiera que se quede silencioso mientras
+    los demas siguen activos.
 
-    Dejar vacio para no crear ninguna politica de cero-ingreso.
+    Por defecto: cualquier topic marcado como "prod" (segmento completo
+    delimitado por guiones o los bordes del nombre - "(^|-)prod(-|$)" en vez
+    de ".*prod.*" para no enganchar falsos positivos como "preprod").
   EOT
-  type        = list(string)
-  default     = []
+  type        = string
+  default     = "(^|-)prod(-|$)"
+}
+
+variable "topic_exclude_regex" {
+  description = <<-EOT
+    Regex de topics a excluir de la alerta de cero-ingreso.
+    Por defecto excluye colas de error/DLQ: que una DLQ este en silencio es
+    el estado normal y deseado, no una anomalia (mismo criterio que ya se
+    aplica a las subscriptions en subscription_exclude_regex).
+  EOT
+  type        = string
+  default     = ".*error.*"
 }
 
 # ---------------------------------------------------------------------------
