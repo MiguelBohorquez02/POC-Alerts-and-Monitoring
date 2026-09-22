@@ -84,12 +84,12 @@ resource "google_monitoring_notification_channel" "teams" {
 # lugar de reportar 0. Sin auto_close el incidente queda abierto para siempre.
 
 resource "google_monitoring_alert_policy" "oldest_unacked_message_age" {
-  display_name = "Pub/Sub | Mensaje sin consumir > ${var.max_message_age_seconds / 60} min"
+  display_name = "Pub/Sub | Unconsumed message > ${var.max_message_age_seconds / 60} min"
   combiner     = "OR"
   severity     = "ERROR"
 
   conditions {
-    display_name = "Edad del mensaje mas viejo supera el SLA"
+    display_name = "Oldest message age exceeds SLA"
 
     condition_prometheus_query_language {
       query = "max by (subscription_id) (pubsub_googleapis_com:subscription_oldest_unacked_message_age{${local.sub_matcher}}) > ${var.max_message_age_seconds}"
@@ -105,17 +105,17 @@ resource "google_monitoring_alert_policy" "oldest_unacked_message_age" {
 
   documentation {
     mime_type = "text/markdown"
-    subject   = "Pub/Sub: mensaje sin consumir supera el SLA"
+    subject   = "Pub/Sub: unconsumed message exceeds SLA"
     content   = <<-EOT
-      Una subscription tiene un mensaje esperando mas de ${var.max_message_age_seconds / 60} minutos sin ser consumido.
+      A subscription has a message waiting more than ${var.max_message_age_seconds / 60} minutes without being consumed.
 
       **Subscription:** $${resource.label.subscription_id}
-      **Proyecto:** $${resource.label.project_id}
+      **Project:** $${resource.label.project_id}
 
-      **Que revisar:**
-      1. Estado del consumer (esta corriendo? esta acking?)
-      2. Logs de la aplicacion consumidora en busca de errores repetidos
-      3. Si el mensaje es un poison pill, verificar la configuracion de DLQ
+      **What to check:**
+      1. Consumer status (is it running? is it acking?)
+      2. Consumer application logs for repeated errors
+      3. If the message is a poison pill, check the DLQ configuration
     EOT
   }
 
@@ -132,12 +132,12 @@ resource "google_monitoring_alert_policy" "oldest_unacked_message_age" {
 # que sube y baja en dos minutos no dispara nada.
 
 resource "google_monitoring_alert_policy" "backlog_depth" {
-  display_name = "Pub/Sub | Backlog >= ${var.backlog_threshold} mensajes sostenido"
+  display_name = "Pub/Sub | Backlog >= ${var.backlog_threshold} messages sustained"
   combiner     = "OR"
   severity     = "WARNING"
 
   conditions {
-    display_name = "Mensajes sin entregar por encima del umbral"
+    display_name = "Undelivered messages above threshold"
 
     condition_prometheus_query_language {
       query = "sum by (subscription_id) (pubsub_googleapis_com:subscription_num_undelivered_messages{${local.sub_matcher}}) >= ${var.backlog_threshold}"
@@ -153,17 +153,17 @@ resource "google_monitoring_alert_policy" "backlog_depth" {
 
   documentation {
     mime_type = "text/markdown"
-    subject   = "Pub/Sub: backlog acumulado"
+    subject   = "Pub/Sub: accumulated backlog"
     content   = <<-EOT
-      Una subscription acumula ${var.backlog_threshold} o mas mensajes sin entregar de forma sostenida.
+      A subscription has accumulated ${var.backlog_threshold} or more undelivered messages, sustained.
 
       **Subscription:** $${resource.label.subscription_id}
-      **Proyecto:** $${resource.label.project_id}
+      **Project:** $${resource.label.project_id}
 
-      **Que revisar:**
-      1. Capacidad del consumer: hay suficientes instancias?
-      2. Latencia de procesamiento por mensaje
-      3. Si el ack deadline es suficiente para el tiempo real de proceso
+      **What to check:**
+      1. Consumer capacity: are there enough instances?
+      2. Per-message processing latency
+      3. Whether the ack deadline is enough for the real processing time
     EOT
   }
 
@@ -199,12 +199,12 @@ resource "google_monitoring_alert_policy" "backlog_depth" {
 resource "google_monitoring_alert_policy" "zero_ingress" {
   for_each = toset(local.zero_ingress_topics)
 
-  display_name = "Pub/Sub | Cero mensajes publicados en ${var.zero_ingress_window} - ${each.value}"
+  display_name = "Pub/Sub | Zero messages published in ${var.zero_ingress_window} - ${each.value}"
   combiner     = "OR"
   severity     = "CRITICAL"
 
   conditions {
-    display_name = "Sin publicaciones en el topic"
+    display_name = "No publications on the topic"
 
     condition_prometheus_query_language {
       query = "absent_over_time(pubsub_googleapis_com:topic_send_request_count{monitored_resource=\"pubsub_topic\", topic_id=\"${each.value}\"}[${var.zero_ingress_window}])"
@@ -220,17 +220,17 @@ resource "google_monitoring_alert_policy" "zero_ingress" {
 
   documentation {
     mime_type = "text/markdown"
-    subject   = "Pub/Sub: silencio upstream"
+    subject   = "Pub/Sub: upstream silence"
     content   = <<-EOT
-      El topic `${each.value}` no ha recibido ninguna publicacion en ${var.zero_ingress_window}.
+      Topic `${each.value}` has not received any publication in ${var.zero_ingress_window}.
 
-      Los consumers pueden verse sanos: estan inactivos porque no hay trabajo,
-      no porque esten funcionando bien.
+      Consumers may look healthy: they are idle because there is no work,
+      not because they are functioning well.
 
-      **Que revisar:**
-      1. Estado del job de Cloud Scheduler
-      2. Credenciales o permisos del publisher (expiraron?)
-      3. Conectividad de red hacia Pub/Sub desde el origen
+      **What to check:**
+      1. Cloud Scheduler job status
+      2. Publisher credentials or permissions (expired?)
+      3. Network connectivity to Pub/Sub from the source
     EOT
   }
 
@@ -250,12 +250,12 @@ resource "google_monitoring_alert_policy" "zero_ingress" {
 # crecimiento sostenido y llena Teams de falsos positivos.
 
 resource "google_monitoring_alert_policy" "queue_growth_rate" {
-  display_name = "Pub/Sub | Cola creciendo (ingress > drain) sostenido"
+  display_name = "Pub/Sub | Queue growing (ingress > drain) sustained"
   combiner     = "OR"
   severity     = "WARNING"
 
   conditions {
-    display_name = "Backlog con pendiente positiva sostenida"
+    display_name = "Backlog with sustained positive slope"
 
     condition_prometheus_query_language {
       query = trimspace(<<-EOT
@@ -284,21 +284,21 @@ resource "google_monitoring_alert_policy" "queue_growth_rate" {
 
   documentation {
     mime_type = "text/markdown"
-    subject   = "Pub/Sub: la cola crece mas rapido de lo que drena"
+    subject   = "Pub/Sub: queue growing faster than it drains"
     content   = <<-EOT
-      El backlog de una subscription lleva creciendo de forma sostenida: entran
-      mas mensajes de los que se procesan.
+      A subscription's backlog has been growing steadily: more messages are
+      coming in than are being processed.
 
       **Subscription:** $${resource.label.subscription_id}
 
-      Esto es un aviso temprano. El backlog total todavia puede parecer
-      manejable, pero la tendencia indica capacidad insuficiente o degradacion
-      parcial del consumer.
+      This is an early warning. The total backlog may still look manageable,
+      but the trend indicates insufficient capacity or partial consumer
+      degradation.
 
-      **Que revisar:**
-      1. Cambio reciente en el volumen publicado
-      2. Salud parcial del consumer: algunas instancias fallando?
-      3. Latencia de dependencias downstream (base de datos, APIs externas)
+      **What to check:**
+      1. Recent change in published volume
+      2. Partial consumer health: are some instances failing?
+      3. Downstream dependency latency (database, external APIs)
     EOT
   }
 
