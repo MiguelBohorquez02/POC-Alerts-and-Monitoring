@@ -62,6 +62,20 @@ variable "topic_exclude_regex" {
   default     = ".*error.*"
 }
 
+variable "coupa_topic_regex" {
+  description = <<-EOT
+    Regex de topics de cero-ingreso que deben notificar al canal de Teams
+    dedicado a Coupa/batch (teams_webhook_url_coupa) en vez del canal
+    general. Por patron de nombre, no lista curada a mano - mismo criterio
+    que topic_include_regex.
+
+    Por defecto cubre: todo lo que empiece con "coupa-", los 3 topics de
+    batch-process-stage, po-status-sync-cdk y invoice-sync-coupa-lite.
+  EOT
+  type        = string
+  default     = "(^coupa-|^batch-process-stage[0-9]-queue-prod$|^po-status-sync-cdk-queue-prod$|^invoice-sync-coupa-lite-queue-prod$)"
+}
+
 # ---------------------------------------------------------------------------
 # Umbrales (calibrar con datos reales antes de fijar)
 # ---------------------------------------------------------------------------
@@ -113,6 +127,18 @@ variable "teams_webhook_url" {
   description = <<-EOT
     URL del flujo de Power Automate que publica en Teams.
     Dejar vacio para crear las politicas sin canal de notificacion (modo silencioso).
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "teams_webhook_url_coupa" {
+  description = <<-EOT
+    URL del flujo de Power Automate para el canal de Teams dedicado a
+    Coupa/batch (ver coupa_topic_regex). Dejar vacio para que esos topics
+    de cero-ingreso no notifiquen a ningun canal (no caen de vuelta al
+    canal general, para no duplicar avisos entre equipos).
   EOT
   type        = string
   default     = ""

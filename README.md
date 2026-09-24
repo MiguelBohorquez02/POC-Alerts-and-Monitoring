@@ -41,6 +41,16 @@ si hace falta mas precision.
 si ninguna serie del selector tiene datos. Con un regex de varios topics, uno
 silencioso queda tapado por los demas.
 
+**Canal de Teams dedicado para Coupa/batch.** Las alertas de cero-ingreso de los
+topics que empiezan con `coupa-`, los 3 de `batch-process-stage`,
+`po-status-sync-cdk-queue-prod` e `invoice-sync-coupa-lite-queue-prod`
+(`coupa_topic_regex`) notifican a un canal de Teams aparte
+(`teams_webhook_url_coupa`) en vez del canal general — ese equipo no necesita
+ver ruido de las otras ~200 fuentes. Sigue el mismo interruptor
+`enable_zero_ingress_notifications` que el resto de cero-ingreso; si
+`teams_webhook_url_coupa` esta vacio, esos topics simplemente no notifican
+(no caen de vuelta al canal general).
+
 **Crecimiento = derivada del backlog.** Por definicion `d(backlog)/dt = ingress −
 drain`, asi que no hace falta comparar dos metricas ni unir labels de topic con
 labels de subscription.

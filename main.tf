@@ -34,6 +34,12 @@ locals {
   # comportamiento real antes de conectar 236 fuentes nuevas a Teams de una vez.
   zero_ingress_notification_channels = var.enable_zero_ingress_notifications && var.teams_webhook_url != "" ? [google_monitoring_notification_channel.teams[0].id] : []
 
+  # Canal aparte para Coupa/batch: mismo interruptor (enable_zero_ingress_notifications),
+  # pero mandan a un canal de Teams distinto en vez del general. Si
+  # teams_webhook_url_coupa esta vacio, esos topics simplemente no notifican
+  # (no caen de vuelta al canal general) para no duplicar avisos entre equipos.
+  coupa_zero_ingress_notification_channels = var.enable_zero_ingress_notifications && var.teams_webhook_url_coupa != "" ? [google_monitoring_notification_channel.teams_coupa[0].id] : []
+
   all_topic_names = compact(split(",", data.external.pubsub_topics.result.names))
 
   zero_ingress_topics = [
@@ -41,6 +47,17 @@ locals {
     if length(regexall(var.topic_include_regex, t)) > 0
     && length(regexall(var.topic_exclude_regex, t)) == 0
   ]
+
+  # Que topic va a que canal de Teams. coupa_topic_regex identifica la familia
+  # Coupa/batch por patron de nombre (coupa-*, batch-process-stage*, etc.) en
+  # vez de una lista curada a mano - mismo criterio que el resto del proyecto.
+  zero_ingress_channels_by_topic = {
+    for t in local.zero_ingress_topics : t => (
+      length(regexall(var.coupa_topic_regex, t)) > 0
+      ? local.coupa_zero_ingress_notification_channels
+      : local.zero_ingress_notification_channels
+    )
+  }
 }
 
 # El provider de Google no trae un data source nativo para listar topics de
@@ -68,6 +85,20 @@ resource "google_monitoring_notification_channel" "teams" {
 
   labels = {
     url = var.teams_webhook_url
+  }
+}
+
+# Canal dedicado para alertas de Coupa/batch (cero-ingreso unicamente). Vive
+# aparte del canal general para que ese equipo no tenga que filtrar ruido de
+# las otras ~200 fuentes que no le pertenecen.
+resource "google_monitoring_notification_channel" "teams_coupa" {
+  count = var.teams_webhook_url_coupa != "" ? 1 : 0
+
+  display_name = "Microsoft Teams - Coupa & Batch Pub/Sub Alerts"
+  type         = "webhook_tokenauth"
+
+  labels = {
+    url = var.teams_webhook_url_coupa
   }
 }
 
@@ -234,7 +265,7 @@ resource "google_monitoring_alert_policy" "zero_ingress" {
     EOT
   }
 
-  notification_channels = local.zero_ingress_notification_channels
+  notification_channels = local.zero_ingress_channels_by_topic[each.value]
 }
 
 # ===========================================================================

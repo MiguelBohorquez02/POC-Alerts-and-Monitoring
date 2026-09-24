@@ -30,6 +30,10 @@ subscription_exclude_regex = ".*error.*"
 topic_include_regex = "(^|-)prod(-|$)"
 topic_exclude_regex = ".*error.*"
 
+# Topics de Coupa/batch dentro de lo anterior que van a un canal de Teams
+# aparte (ver NOTIFICACIONES mas abajo) en vez del canal general.
+coupa_topic_regex = "(^coupa-|^batch-process-stage[0-9]-queue-prod$|^po-status-sync-cdk-queue-prod$|^invoice-sync-coupa-lite-queue-prod$)"
+
 # ---------------------------------------------------------------------------
 # UMBRALES - calibrar con datos reales antes de fijar
 # ---------------------------------------------------------------------------
@@ -57,3 +61,7 @@ growth_duration         = "900s"
 teams_webhook_url                 = ""
 enable_notifications              = false
 enable_zero_ingress_notifications = false
+
+# Canal aparte para Coupa/batch (mismo interruptor de arriba). Vacio = esos
+# topics no notifican a nadie (no caen de vuelta al canal general).
+teams_webhook_url_coupa = ""
