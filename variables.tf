@@ -145,6 +145,19 @@ variable "teams_webhook_url_coupa" {
   sensitive   = true
 }
 
+variable "teams_webhook_url_zero_ingress" {
+  description = <<-EOT
+    URL del flujo de Power Automate para el canal de Teams dedicado a TODAS
+    las alertas de cero-ingreso que no son Coupa/batch. El canal general
+    (teams_webhook_url) queda reservado solo para las 3 alertas por
+    subscription. Dejar vacio para que esos topics no notifiquen a ningun
+    canal (no caen de vuelta al canal general).
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "enable_notifications" {
   description = <<-EOT
     Controla las 3 alertas por subscription (oldest_unacked_message_age,

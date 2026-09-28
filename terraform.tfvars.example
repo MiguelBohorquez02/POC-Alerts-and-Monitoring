@@ -65,3 +65,9 @@ enable_zero_ingress_notifications = false
 # Canal aparte para Coupa/batch (mismo interruptor de arriba). Vacio = esos
 # topics no notifican a nadie (no caen de vuelta al canal general).
 teams_webhook_url_coupa = ""
+
+# Canal aparte para TODO el cero-ingreso que no es Coupa/batch (mismo
+# interruptor de arriba). El canal general (teams_webhook_url) queda solo
+# para las 3 alertas por subscription. Vacio = esos topics no notifican a
+# nadie (no caen de vuelta al canal general).
+teams_webhook_url_zero_ingress = ""

@@ -51,6 +51,13 @@ ver ruido de las otras ~200 fuentes. Sigue el mismo interruptor
 `teams_webhook_url_coupa` esta vacio, esos topics simplemente no notifican
 (no caen de vuelta al canal general).
 
+**Canal general reservado para las 3 alertas por subscription.** El canal
+general (`teams_webhook_url`) ya no recibe cero-ingreso de ningun topic — a
+pedido del equipo, para no mezclar las alertas de "mensaje atascado / backlog
+/ crecimiento" con el volumen de cero-ingreso. Todo el cero-ingreso que no es
+Coupa/batch (~205 topics) va a su propio canal dedicado
+(`teams_webhook_url_zero_ingress`).
+
 **Crecimiento = derivada del backlog.** Por definicion `d(backlog)/dt = ingress −
 drain`, asi que no hace falta comparar dos metricas ni unir labels de topic con
 labels de subscription.

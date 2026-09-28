@@ -32,7 +32,11 @@ locals {
   # encima de las 1-a-la-vez de las otras 3 alertas. Arranca en modo silencioso
   # independiente de enable_notifications para poder observar un par de dias de
   # comportamiento real antes de conectar 236 fuentes nuevas a Teams de una vez.
-  zero_ingress_notification_channels = var.enable_zero_ingress_notifications && var.teams_webhook_url != "" ? [google_monitoring_notification_channel.teams[0].id] : []
+  #
+  # Canal propio (teams_zero_ingress), no el general (teams): el canal general
+  # queda reservado solo para las 3 alertas por subscription, a pedido del
+  # equipo - antes cero-ingreso tambien caia ahi y se mezclaba con esas 3.
+  zero_ingress_notification_channels = var.enable_zero_ingress_notifications && var.teams_webhook_url_zero_ingress != "" ? [google_monitoring_notification_channel.teams_zero_ingress[0].id] : []
 
   # Canal aparte para Coupa/batch: mismo interruptor (enable_zero_ingress_notifications),
   # pero mandan a un canal de Teams distinto en vez del general. Si
@@ -99,6 +103,20 @@ resource "google_monitoring_notification_channel" "teams_coupa" {
 
   labels = {
     url = var.teams_webhook_url_coupa
+  }
+}
+
+# Canal dedicado para TODAS las alertas de cero-ingreso que no son Coupa/batch
+# (~205 topics). El canal general (teams) queda reservado solo para las 3
+# alertas por subscription, a pedido del equipo.
+resource "google_monitoring_notification_channel" "teams_zero_ingress" {
+  count = var.teams_webhook_url_zero_ingress != "" ? 1 : 0
+
+  display_name = "Microsoft Teams - Zero Messages Pub/Sub Alerts"
+  type         = "webhook_tokenauth"
+
+  labels = {
+    url = var.teams_webhook_url_zero_ingress
   }
 }
 
