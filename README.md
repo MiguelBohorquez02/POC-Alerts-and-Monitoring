@@ -10,7 +10,7 @@ subscriptions de Pub/Sub, definidas como codigo (Terraform), cubriendo
 |---|---|---|
 | `oldest_unacked_message_age` | > 15 min | Consumer caido o atascado |
 | `backlog_depth` | >= 10 msg por 10 min | Consumer sin capacidad |
-| `zero_ingress` | 1h sin publicaciones | Scheduler dejo de publicar |
+| `zero_ingress` | 2h sin publicaciones | Scheduler dejo de publicar |
 | `queue_growth_rate` | ingress > drain por 15 min | Degradacion parcial (aviso temprano) |
 
 ## Decisiones de diseño

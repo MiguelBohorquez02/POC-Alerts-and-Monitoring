@@ -41,7 +41,7 @@ coupa_topic_regex = "(^coupa-|^batch-process-stage[0-9]-queue-prod$|^po-status-s
 max_message_age_seconds = 900   # 15 min
 backlog_threshold       = 10
 backlog_duration        = "600s"
-zero_ingress_window     = "1h"
+zero_ingress_window     = "2h"  # subido de 1h -> 2h para calmar falsos positivos, observar y reevaluar
 growth_min_backlog      = 3
 growth_duration         = "900s"
 
